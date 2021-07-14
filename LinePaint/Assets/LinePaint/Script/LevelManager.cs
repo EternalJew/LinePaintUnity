@@ -11,8 +11,11 @@ namespace Linepaint
         [SerializeField] private int height;
         [SerializeField] private float cellSize;
         private Grid grid;
+        private SwipeController swipeController;
         private void Start()
         {
+            swipeController = new SwipeController();
+            swipeController.SetLevelManager(this);
             grid = new Grid();
             grid.Initialize(width, height, cellSize);
 
@@ -27,6 +30,17 @@ namespace Linepaint
                     GameObject block = Instantiate(blockPrefab);
                     block.transform.position = grid.GetCellWorldPosition(x, y);
                 }
+            }
+        }
+        public void MoveBrush(Swipe direction)
+        {
+            Debug.Log(direction);
+        }
+        private void Update()
+        {
+            if(swipeController != null)
+            {
+                swipeController.OnUpdate();
             }
         }
     }

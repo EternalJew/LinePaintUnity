@@ -11,7 +11,30 @@ namespace Linepaint
     public class SwipeController 
     {   
         private Vector2 startPosition, endPosition;
+        private LevelManager _levelManager;
 
+        public void SetLevelManager(LevelManager manager)
+        {
+            _levelManager = manager;
+        }
+        public void OnUpdate()
+        {
+            if(Input.GetMouseButtonDown(0))
+            {
+                startPosition = Input.mousePosition;
+                endPosition = startPosition;
+            }
+            else if(Input.GetMouseButtonUp(0))
+            {
+                endPosition = Input.mousePosition;
+                
+                if(Vector2.Distance(endPosition, startPosition ) > 0.1f)
+                {
+                    SwipeDirection();
+                }
+            }
+            
+        }
         private Swipe SwipeDirection()
         {
             Swipe direction = Swipe.None;
@@ -54,6 +77,7 @@ namespace Linepaint
 
             if(direction != Swipe.None)
             {
+                _levelManager.MoveBrush(direction);
                 direction = Swipe.None;
             }
 
