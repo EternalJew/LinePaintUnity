@@ -9,6 +9,7 @@ namespace Linepaint
         [SerializeField] private CameraZoom gameCamera;
         [SerializeField] private Cell blockPrefab;
         [SerializeField] private BrushController brush;
+        [SerializeField] private LinePaintScript linePaintPrefab;
         [SerializeField] private int width;
         [SerializeField] private int height;
         [SerializeField] private float cellSize;
@@ -16,12 +17,14 @@ namespace Linepaint
         private Grid grid;
         private SwipeController swipeController;
         private BrushController currentBrush;
+        private List<ConnectionLine> inProgress = new List<ConnectionLine>();
+        private List<LinePaintScript> connectedLinePaint = new List<LinePaintScript>();
         private void Start()
         {
             swipeController = new SwipeController();
             swipeController.SetLevelManager(this);
             grid = new Grid();
-            grid.Initialize(width, height, cellSize);
+            grid.Initialize(width, height, cellSize, Vector3.zero);
             cellArray = new Cell[width, height];
 
             CreateGrid(Vector3.zero);
@@ -58,6 +61,14 @@ namespace Linepaint
             if(newCoords != new Vector2Int(-1, -1))
             {
                 Vector3 finalPos = grid.GetCellWorldPosition(newCoords.x, newCoords.y);
+
+                inProgress.Add(new ConnectionLine(currentBrush.currentCoords, newCoords));
+                cellArray[currentBrush.currentCoords.x, currentBrush.currentCoords.y].CellCenterPaint.gameObject.SetActive(true);
+
+                LinePaintScript linePaint = Instantiate(linePaintPrefab, new Vector3(0,0.2f,0), Quaternion.identity);
+                linePaintPrefab.SetRenderePosition(currentBrush.transform.position + new Vector3(0,0.2f,0),
+                finalPos + new Vector3(0,0.2f,0));
+                linePaint.SetConnectedCoords(currentBrush.currentCoords, newCoords);
 
                 currentBrush.transform.position = finalPos;
                 currentBrush.currentCoords = newCoords;
