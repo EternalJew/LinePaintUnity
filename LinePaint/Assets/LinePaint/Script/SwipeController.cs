@@ -13,9 +13,9 @@ namespace Linepaint
         private Vector2 startPosition, endPosition;
         private LevelManager _levelManager;
 
-        public void SetLevelManager(LevelManager manager)
+        public void SetLevelManager(LevelManager levelManager)
         {
-            _levelManager = manager;
+            _levelManager = levelManager;
         }
         public void OnUpdate()
         {

@@ -8,7 +8,7 @@ namespace Linepaint
     {
         [SerializeField] private CameraZoom gameCamera;
         [SerializeField] private Cell blockPrefab;
-        [SerializeField] private BrushController brush;
+        [SerializeField] private BrushController brushPrefab;
         [SerializeField] private LinePaintScript linePaintPrefab;
         [SerializeField] private int width;
         [SerializeField] private int height;
@@ -29,19 +29,16 @@ namespace Linepaint
 
             CreateGrid(Vector3.zero);
 
-            currentBrush = Instantiate(brush, grid.GetCellWorldPosition(0, 0), Quaternion.identity);
+            currentBrush = Instantiate(brushPrefab, Vector3.zero, Quaternion.identity);
             currentBrush.currentCoords = new Vector2Int(0, 0);
             
             gameCamera.ZoomPerspectiveCamera(width, height);
         }
-        private void CreateGrid(Vector3 originPos)
+        private void Update()
         {
-            for (int x = 0; x < grid.GridArray.GetLength(0); x++)
+            if(swipeController != null)
             {
-                for(int y = 0; y < grid.GridArray.GetLength(1); y++)
-                {
-                    cellArray[x,y] = CreateCell(x, y, originPos);
-                }
+                swipeController.OnUpdate();
             }
         }
         private Cell CreateCell(int x, int y, Vector3 originPos)
@@ -49,7 +46,7 @@ namespace Linepaint
             Cell cell = Instantiate(blockPrefab);
             cell.cellCoords = new Vector2Int(x,y);
             cell.transform.localScale = new Vector3(cellSize, 0.25f, cellSize);
-            cell.transform.position = originPos + grid.GetCellWorldPosition(x,y);
+            cell.transform.position = originPos + grid.GetCellWorldPosition(x, y);
             
             return cell;
         }
@@ -62,24 +59,68 @@ namespace Linepaint
             {
                 Vector3 finalPos = grid.GetCellWorldPosition(newCoords.x, newCoords.y);
 
-                inProgress.Add(new ConnectionLine(currentBrush.currentCoords, newCoords));
-                cellArray[currentBrush.currentCoords.x, currentBrush.currentCoords.y].CellCenterPaint.gameObject.SetActive(true);
+                if(ConnectionAlreadyDone(currentBrush.currentCoords, newCoords) == false)
+                {
+                    inProgress.Add(new ConnectionLine(currentBrush.currentCoords, newCoords));
+                    
+                    cellArray[currentBrush.currentCoords.x, currentBrush.currentCoords.y].CellCenterPaint.gameObject.SetActive(true);
 
-                LinePaintScript linePaint = Instantiate(linePaintPrefab, new Vector3(0,0.2f,0), Quaternion.identity);
-                linePaintPrefab.SetRenderePosition(currentBrush.transform.position + new Vector3(0,0.2f,0),
-                finalPos + new Vector3(0,0.2f,0));
-                linePaint.SetConnectedCoords(currentBrush.currentCoords, newCoords);
+                    LinePaintScript linePaint = Instantiate(linePaintPrefab, new Vector3(0, 0.2f, 0), Quaternion.identity);
+                    linePaintPrefab.SetRendererPosition(currentBrush.transform.position + new Vector3(0, 0.2f, 0),
+                    finalPos + new Vector3(0, 0.2f, 0));
+                    linePaint.SetConnectedCoords(currentBrush.currentCoords, newCoords);
+                    connectedLinePaint.Add(linePaint);
+                }
+                else
+                {
+                    RemoveConnectLinePaint(currentBrush.currentCoords, newCoords);
+                }
 
                 currentBrush.transform.position = finalPos;
                 currentBrush.currentCoords = newCoords;
             }
         }
-        private void Update()
+        private bool ConnectionAlreadyDone(Vector2Int startCoord, Vector2Int endCoord)
         {
-            if(swipeController != null)
+            bool connected = false;
+
+            for (int i = 0; i < inProgress.Count; i++)
             {
-                swipeController.OnUpdate();
+                if(inProgress[i].StartCoords == startCoord && inProgress[i].EndCoords == endCoord ||
+                    inProgress[i].StartCoords == endCoord && inProgress[i].EndCoords == startCoord)
+                {
+                    inProgress.RemoveAt(i);
+
+                    connected = true;
+                    break;
+                }
+            }
+            return connected;
+        }
+        private void RemoveConnectLinePaint(Vector2Int startCoord, Vector2Int endCoord)
+        {
+            for (int i = 0; i < connectedLinePaint.Count; i++)
+            {
+                if(connectedLinePaint[i].StartCoords == startCoord && connectedLinePaint[i].EndCoords == endCoord ||
+                    connectedLinePaint[i].StartCoords == endCoord && connectedLinePaint[i].EndCoords == startCoord)
+                {
+                    LinePaintScript line = connectedLinePaint[i];
+                    connectedLinePaint.RemoveAt(i);
+                    Destroy(line.gameObject);
+
+                    cellArray[endCoord.x, endCoord.y].CellCenterPaint.gameObject.SetActive(false);
+                }
             }
         }
+        private void CreateGrid(Vector3 originPos)
+        {
+            for (int x = 0; x < grid.GridArray.GetLength(0); x++)
+            {
+                for(int y = 0; y < grid.GridArray.GetLength(1); y++)
+                {
+                    cellArray[x,y] = CreateCell(x, y, originPos);
+                }
+            }
+        } 
     }
 }
