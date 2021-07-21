@@ -9,18 +9,18 @@ namespace Linepaint
     private int _width;
     private int _height;
     private float _cellSize;
-    private Vector3 _originPos;
+    private Vector3 _gridOriginPos;
 
     private int[,] gridArray;
 
     public int[,] GridArray { get { return gridArray; } }
 
-    public void Initialize(int width, int height, float cellSize, Vector3 originPos)
+    public void Initialize(int width, int height, float cellSize, Vector3 gridOriginPos)
     {
         _width = width;
         _height = height;
         _cellSize = cellSize;
-        _originPos = originPos;
+        _gridOriginPos = gridOriginPos;
 
         gridArray = new int[width, height];
     }

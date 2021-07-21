@@ -7,12 +7,15 @@ namespace Linepaint
     public class LevelManager : MonoBehaviour
     {
         [SerializeField] private CameraZoom gameCamera;
+        [SerializeField] private CameraZoom solutionCamera;
         [SerializeField] private Cell blockPrefab;
         [SerializeField] private BrushController brushPrefab;
         [SerializeField] private LinePaintScript linePaintPrefab;
         [SerializeField] private int width;
         [SerializeField] private int height;
         [SerializeField] private float cellSize;
+        [SerializeField] private List<LevelScriptableData> levelScriptables;
+        [SerializeField] private Vector3 gridOriginPos;
         private Cell[,] cellArray;
         private Grid grid;
         private SwipeController swipeController;
@@ -24,6 +27,9 @@ namespace Linepaint
             swipeController = new SwipeController();
             swipeController.SetLevelManager(this);
             grid = new Grid();
+
+            CompleteBoard();
+
             grid.Initialize(width, height, cellSize, Vector3.zero);
             cellArray = new Cell[width, height];
 
@@ -120,6 +126,22 @@ namespace Linepaint
                 {
                     cellArray[x,y] = CreateCell(x, y, originPos);
                 }
+            }
+        }
+        private void CompleteBoard()
+        {
+            grid.Initialize(width, height, cellSize, gridOriginPos);
+
+            for (int i = 0; i < levelScriptables[0].completePattern.Count; i++)
+            {
+                Vector3 startPos = grid.GetCellWorldPosition(levelScriptables[0].completePattern[i].StartCoords.x,
+                    levelScriptables[0].completePattern[i].StartCoords.y);
+
+                Vector3 endPos = grid.GetCellWorldPosition(levelScriptables[0].completePattern[i].EndCoords.x,
+                    levelScriptables[0].completePattern[i].EndCoords.y);
+
+                LinePaintScript linePaint = Instantiate(linePaintPrefab, new Vector3(0, 0.2f, 0), Quaternion.identity);
+                linePaint.SetRendererPosition(startPos, endPos);
             }
         } 
     }
