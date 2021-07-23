@@ -11,11 +11,11 @@ namespace Linepaint
         [SerializeField] private Cell blockPrefab;
         [SerializeField] private BrushController brushPrefab;
         [SerializeField] private LinePaintScript linePaintPrefab;
-        [SerializeField] private int width;
-        [SerializeField] private int height;
         [SerializeField] private float cellSize;
         [SerializeField] private List<LevelScriptableData> levelScriptables;
-        [SerializeField] private Vector3 gridOriginPos;
+        [SerializeField] private Vector3 gridOriginPos; 
+        private int width;
+        private int height;
         private Cell[,] cellArray;
         private Grid grid;
         private SwipeController swipeController;
@@ -26,8 +26,11 @@ namespace Linepaint
         {
             swipeController = new SwipeController();
             swipeController.SetLevelManager(this);
+            
+            width = levelScriptables[GameManager.currentLevel].width;
+            height = levelScriptables[GameManager.currentLevel].height;
+            
             grid = new Grid();
-
             CompleteBoard();
 
             grid.Initialize(width, height, cellSize, Vector3.zero);
@@ -35,14 +38,14 @@ namespace Linepaint
 
             CreateGrid(Vector3.zero);
 
-            currentBrush = Instantiate(brushPrefab, Vector3.zero, Quaternion.identity);
+            currentBrush = Instantiate(brushPrefab, grid.GetCellWorldPosition(levelScriptables[GameManager.currentLevel].brushStartCoords.x, levelScriptables[GameManager.currentLevel].brushStartCoords.y), Quaternion.identity);
             currentBrush.currentCoords = new Vector2Int(0, 0);
             
             gameCamera.ZoomPerspectiveCamera(width, height);
         }
         private void Update()
         {
-            if(swipeController != null)
+            if(swipeController != null && GameManager.gameStatus == GameStatus.Playing)
             {
                 swipeController.OnUpdate();
             }
@@ -65,7 +68,7 @@ namespace Linepaint
             {
                 Vector3 finalPos = grid.GetCellWorldPosition(newCoords.x, newCoords.y);
 
-                if(ConnectionAlreadyDone(currentBrush.currentCoords, newCoords) == false)
+                if(ConnectionAlreadyDone(currentBrush.currentCoords, newCoords, true) == false)
                 {
                     inProgress.Add(new ConnectionLine(currentBrush.currentCoords, newCoords));
                     
@@ -82,11 +85,20 @@ namespace Linepaint
                     RemoveConnectLinePaint(currentBrush.currentCoords, newCoords);
                 }
 
+                if(levelScriptables[GameManager.currentLevel].completePattern.Count <= inProgress.Count)
+                {
+                    if(IsLevelComplete())
+                    {
+                        GameManager.gameStatus = GameStatus.Complete;
+                        Debug.Log("LevelCompleted!");
+                    }
+                }
+
                 currentBrush.transform.position = finalPos;
                 currentBrush.currentCoords = newCoords;
             }
         }
-        private bool ConnectionAlreadyDone(Vector2Int startCoord, Vector2Int endCoord)
+        private bool ConnectionAlreadyDone(Vector2Int startCoord, Vector2Int endCoord, bool removeConnectLine)
         {
             bool connected = false;
 
@@ -95,7 +107,10 @@ namespace Linepaint
                 if(inProgress[i].StartCoords == startCoord && inProgress[i].EndCoords == endCoord ||
                     inProgress[i].StartCoords == endCoord && inProgress[i].EndCoords == startCoord)
                 {
-                    inProgress.RemoveAt(i);
+                    if(removeConnectLine)
+                    {
+                        inProgress.RemoveAt(i);
+                    }
 
                     connected = true;
                     break;
@@ -128,17 +143,39 @@ namespace Linepaint
                 }
             }
         }
+        private bool IsLevelComplete()
+        {
+            if(levelScriptables[GameManager.currentLevel].completePattern.Count != inProgress.Count)
+            {
+                return false;
+            }
+
+            for(int i = 0; i < levelScriptables[GameManager.currentLevel].completePattern.Count; i++)
+            {
+                if(!ConnectionAlreadyDone(levelScriptables[GameManager.currentLevel].completePattern[i].StartCoords,
+                    levelScriptables[GameManager.currentLevel].completePattern[i].EndCoords, false))
+                    {
+                        return false;
+                    }
+            }
+            return true;
+        }
         private void CompleteBoard()
         {
             grid.Initialize(width, height, cellSize, gridOriginPos);
 
-            for (int i = 0; i < levelScriptables[0].completePattern.Count; i++)
-            {
-                Vector3 startPos = grid.GetCellWorldPosition(levelScriptables[0].completePattern[i].StartCoords.x,
-                    levelScriptables[0].completePattern[i].StartCoords.y);
+            Vector3 offset = new Vector3((levelScriptables[GameManager.currentLevel].width - cellSize) / 2, 0, (levelScriptables[GameManager.currentLevel].height - cellSize) / 2);
+            solutionCamera.transform.position += offset;
 
-                Vector3 endPos = grid.GetCellWorldPosition(levelScriptables[0].completePattern[i].EndCoords.x,
-                    levelScriptables[0].completePattern[i].EndCoords.y);
+            solutionCamera.ZoomOrthographicSizeCamera(levelScriptables[GameManager.currentLevel].width, levelScriptables[GameManager.currentLevel].height);
+
+            for (int i = 0; i < levelScriptables[GameManager.currentLevel].completePattern.Count; i++)
+            {
+                Vector3 startPos = grid.GetCellWorldPosition(levelScriptables[GameManager.currentLevel].completePattern[i].StartCoords.x,
+                    levelScriptables[GameManager.currentLevel].completePattern[i].StartCoords.y);
+
+                Vector3 endPos = grid.GetCellWorldPosition(levelScriptables[GameManager.currentLevel].completePattern[i].EndCoords.x,
+                    levelScriptables[GameManager.currentLevel].completePattern[i].EndCoords.y);
 
                 LinePaintScript linePaint = Instantiate(linePaintPrefab, new Vector3(0, 0.2f, 0), Quaternion.identity);
                 linePaint.SetRendererPosition(startPos, endPos);

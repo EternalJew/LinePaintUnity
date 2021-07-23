@@ -26,7 +26,7 @@ namespace Linepaint
     }
     public Vector3 GetCellWorldPosition(int x, int y)
     {
-        return new Vector3(Mathf.FloorToInt(_cellSize * x), 0, Mathf.FloorToInt(_cellSize * y));
+        return new Vector3(Mathf.FloorToInt(_cellSize * x), 0, Mathf.FloorToInt(_cellSize * y)) + _gridOriginPos;
     }
 
     public Vector2Int GetCellXZBySwipe(int x, int z, Swipe swipe)

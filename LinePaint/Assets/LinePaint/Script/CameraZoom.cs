@@ -22,5 +22,9 @@ namespace Linepaint
             
             transform.position = new Vector3((width - 1) / 2f, _height, myCamera.transform.position.z);
         }
+        public void ZoomOrthographicSizeCamera(float width, float height)
+        {
+            myCamera.orthographicSize = (width > height ? width : height + 0.5f) / 2 + 0.25f;
+        }
     }
 }   
